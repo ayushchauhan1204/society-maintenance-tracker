@@ -1,0 +1,2 @@
+-- AlterEnum
+ALTER TYPE "OutboxType" ADD VALUE 'COMPLAINT_CREATED';

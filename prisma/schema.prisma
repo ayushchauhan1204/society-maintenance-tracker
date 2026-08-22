@@ -1,0 +1,227 @@
+// Society Maintenance Tracker â data model
+//
+// Design note: the ComplaintEvent table is the source of truth for a complaint's
+// history. The mutable columns on Complaint (status, priority, isEscalated,
+// lastActivityAt) are a projection, written in the same transaction as the event.
+//
+// There is deliberately no isOverdue or slaDueAt column. Overdue is derived at read
+// time from SlaPolicy so that editing the SLA matrix re-evaluates every open
+// complaint with no backfill. See CLAUDE.md, invariant 3.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ---------------------------------------------------------------- enums
+
+enum Role {
+  RESIDENT
+  ADMIN
+}
+
+enum Category {
+  WATER_PLUMBING
+  ELECTRICAL
+  LIFT
+  SECURITY
+  HOUSEKEEPING
+  PARKING
+  COMMON_AREA
+  OTHER
+}
+
+enum Status {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum EventType {
+  CREATED
+  STATUS_CHANGED
+  PRIORITY_CHANGED
+  ESCALATED
+  DEESCALATED
+  NOTE_ADDED
+}
+
+enum OutboxType {
+  STATUS_CHANGE
+  COMPLAINT_CREATED
+  IMPORTANT_NOTICE
+}
+
+enum OutboxStatus {
+  PENDING
+  SENT
+  FAILED
+}
+
+// ---------------------------------------------------------------- core
+
+model Unit {
+  id         String      @id @default(cuid())
+  block      String
+  number     String
+  label      String      @unique // e.g. "B-402" â display + recurrence grouping
+  residents  User[]
+  complaints Complaint[]
+  createdAt  DateTime    @default(now())
+
+  @@unique([block, number])
+}
+
+model User {
+  id           String  @id @default(cuid())
+  email        String  @unique
+  passwordHash String
+  name         String
+  role         Role    @default(RESIDENT)
+
+  // Admins are not tied to a unit. Residents always are.
+  unitId String?
+  unit   Unit?   @relation(fields: [unitId], references: [id])
+
+  complaints Complaint[]      @relation("RaisedBy")
+  events     ComplaintEvent[]
+  notices    Notice[]
+
+  createdAt DateTime @default(now())
+
+  @@index([role])
+}
+
+model Complaint {
+  id String @id @default(cuid())
+
+  unitId String
+  unit   Unit   @relation(fields: [unitId], references: [id])
+
+  raisedById String
+  raisedBy   User   @relation("RaisedBy", fields: [raisedById], references: [id])
+
+  category    Category
+  description String
+
+  photoPublicId String?
+  photoUrl      String?
+
+  // --- projection columns: derived from the event ledger, written in the same
+  // --- transaction. Never mutated outside applyTransition().
+  status         Status    @default(OPEN)
+  priority       Priority  @default(MEDIUM)
+  isEscalated    Boolean   @default(false) // manual admin flag, distinct from overdue
+  lastActivityAt DateTime  @default(now())
+  resolvedAt     DateTime?
+
+  // Optimistic concurrency. Clients send the version they read; a mismatch is a 409.
+  version Int @default(0)
+
+  // Set when this complaint recurs after an earlier one was resolved.
+  // The earlier complaint stays closed; the chain stays visible.
+  regressedFromId String?
+  regressedFrom   Complaint?  @relation("Regression", fields: [regressedFromId], references: [id], onDelete: SetNull)
+  regressions     Complaint[] @relation("Regression")
+
+  events ComplaintEvent[]
+
+  createdAt DateTime @default(now())
+
+  @@index([status, createdAt])
+  @@index([unitId, category, createdAt]) // recurrence + regression lookups
+  @@index([category, priority]) // SLA join
+  @@index([raisedById])
+}
+
+// The ledger. Append-only. Never updated, never deleted.
+model ComplaintEvent {
+  id String @id @default(cuid())
+
+  complaintId String
+  complaint   Complaint @relation(fields: [complaintId], references: [id], onDelete: Cascade)
+
+  seq  Int // monotonic per complaint, starts at 1
+  type EventType
+
+  actorId String
+  actor   User   @relation(fields: [actorId], references: [id])
+
+  fromStatus   Status?
+  toStatus     Status?
+  fromPriority Priority?
+  toPriority   Priority?
+
+  note String?
+
+  createdAt DateTime @default(now())
+
+  @@unique([complaintId, seq])
+  @@index([complaintId, createdAt])
+}
+
+// ---------------------------------------------------------------- supporting
+
+model Notice {
+  id          String  @id @default(cuid())
+  title       String
+  body        String
+  isImportant Boolean @default(false) // pinned to top + triggers email
+
+  postedById String
+  postedBy   User   @relation(fields: [postedById], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@index([isImportant, createdAt])
+}
+
+// The SLA matrix. Admin-editable. Overdue is computed against this at read time,
+// so an edit here changes the overdue set immediately and retroactively.
+model SlaPolicy {
+  id       String   @id @default(cuid())
+  category Category
+  priority Priority
+  hours    Int
+
+  @@unique([category, priority])
+}
+
+// Transactional outbox. Rows are inserted in the same transaction as the state
+// change that triggered them, then drained by a separate worker.
+model OutboxMessage {
+  id String @id @default(cuid())
+
+  type           OutboxType
+  recipientEmail String
+  subject        String
+  payload        Json
+
+  status        OutboxStatus @default(PENDING)
+  attempts      Int          @default(0)
+  lastError     String?
+  nextAttemptAt DateTime     @default(now())
+  sentAt        DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([status, nextAttemptAt])
+}
+
+// Runtime-configurable values: recurrence window days, recurrence threshold count.
+model Setting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+}
