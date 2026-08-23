@@ -122,6 +122,11 @@ export default async function AdminQueuePage({
                       Escalated
                     </span>
                   )}
+                  {row.regressedFromId && (
+                    <span className="ml-1 rounded-full bg-purple-100 px-2 py-0.5 text-xs text-purple-700">
+                      Regressed
+                    </span>
+                  )}
                 </td>
                 <td className="px-3 py-2">{row.priority}</td>
                 <td className="px-3 py-2">{formatHours(row.hoursOpen)}</td>

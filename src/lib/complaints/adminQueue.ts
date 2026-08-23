@@ -20,6 +20,7 @@ export interface AdminQueueRow {
   slaHours: number | null;
   hoursOpen: number;
   isOverdue: boolean;
+  regressedFromId: string | null;
 }
 
 // Overdue is never stored — this joins SlaPolicy on (category, priority) and
@@ -66,6 +67,7 @@ export async function listAdminQueue(
       c."createdAt" AS "createdAt",
       c."lastActivityAt" AS "lastActivityAt",
       c."version" AS "version",
+      c."regressedFromId" AS "regressedFromId",
       u."label" AS "unitLabel",
       ur."name" AS "residentName",
       ur."email" AS "residentEmail",

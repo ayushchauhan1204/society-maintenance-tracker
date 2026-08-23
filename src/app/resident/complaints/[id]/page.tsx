@@ -61,6 +61,9 @@ export default async function ComplaintDetailPage({ params }: { params: { id: st
         <div className="mt-3 flex gap-2 text-xs">
           <span className="rounded-full bg-gray-100 px-2 py-0.5">{complaint.status.replace("_", " ")}</span>
           <span className="rounded-full bg-gray-100 px-2 py-0.5">{complaint.priority}</span>
+          {complaint.regressedFrom && (
+            <span className="rounded-full bg-purple-100 px-2 py-0.5 text-purple-700">Regressed</span>
+          )}
         </div>
         {complaint.regressedFrom && (
           <p className="mt-3 text-xs text-gray-600">

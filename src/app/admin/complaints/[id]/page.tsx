@@ -71,6 +71,9 @@ export default async function AdminComplaintDetailPage({ params }: { params: { i
           {complaint.isEscalated && (
             <span className="rounded-full bg-orange-100 px-2 py-0.5 text-orange-700">Escalated</span>
           )}
+          {complaint.regressedFrom && (
+            <span className="rounded-full bg-purple-100 px-2 py-0.5 text-purple-700">Regressed</span>
+          )}
         </div>
         {complaint.regressedFrom && (
           <p className="mt-3 text-xs text-gray-600">

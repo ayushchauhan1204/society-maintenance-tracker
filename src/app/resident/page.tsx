@@ -42,6 +42,9 @@ export default async function ResidentComplaintsPage() {
                   {complaint.isOverdue && (
                     <span className="rounded-full bg-red-100 px-2 py-0.5 text-red-700">Overdue</span>
                   )}
+                  {complaint.regressedFromId && (
+                    <span className="rounded-full bg-purple-100 px-2 py-0.5 text-purple-700">Regressed</span>
+                  )}
                 </div>
               </Link>
             </li>

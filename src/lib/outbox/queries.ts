@@ -12,11 +12,12 @@ export interface OutboxSummary {
 export async function getOutboxSummary(session: Session | null): Promise<OutboxSummary> {
   requireAdmin(session);
 
-  const [pending, sent, failed] = await Promise.all([
-    prisma.outboxMessage.count({ where: { status: OutboxStatus.PENDING } }),
-    prisma.outboxMessage.count({ where: { status: OutboxStatus.SENT } }),
-    prisma.outboxMessage.count({ where: { status: OutboxStatus.FAILED } }),
-  ]);
+  const counts = await prisma.outboxMessage.groupBy({ by: ["status"], _count: { _all: true } });
+  const byStatus = new Map(counts.map((row) => [row.status, row._count._all]));
 
-  return { pending, sent, failed };
+  return {
+    pending: byStatus.get(OutboxStatus.PENDING) ?? 0,
+    sent: byStatus.get(OutboxStatus.SENT) ?? 0,
+    failed: byStatus.get(OutboxStatus.FAILED) ?? 0,
+  };
 }
