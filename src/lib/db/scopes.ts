@@ -53,3 +53,25 @@ export function residentComplaintCreateScope(
   }
   return { raisedById: activeSession.user.id, unitId: activeSession.user.unitId };
 }
+
+// Gates admin-only access. Unlike the resident scopes, an admin's queries
+// aren't narrowed to a subset of rows — the gate itself *is* the scope.
+export function requireAdmin(session: Session | null): Session {
+  const activeSession = requireSession(session);
+  if (activeSession.user.role !== Role.ADMIN) {
+    throw new UnauthorizedError("This action requires an ADMIN session");
+  }
+  return activeSession;
+}
+
+// Scopes a single-complaint admin read. `extra` narrows the lookup (e.g. by
+// id); admins are never restricted to a subset of complaints the way
+// residents are, but the authorization decision still lives here, not in
+// the handler or page that calls it.
+export function adminComplaintScope(
+  session: Session | null,
+  extra: Prisma.ComplaintWhereInput = {},
+): Prisma.ComplaintWhereInput {
+  requireAdmin(session);
+  return { ...extra };
+}

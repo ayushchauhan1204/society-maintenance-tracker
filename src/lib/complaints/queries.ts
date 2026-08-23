@@ -1,7 +1,8 @@
 import type { Session } from "next-auth";
 import { prisma } from "@/lib/db/client";
-import { residentComplaintScope } from "@/lib/db/scopes";
+import { residentComplaintScope, adminComplaintScope } from "@/lib/db/scopes";
 import { isOverdue } from "@/lib/complaints/sla";
+import { legalTransitions } from "@/lib/complaints/transition";
 import type { Complaint } from "@prisma/client";
 
 export type ComplaintWithOverdue = Complaint & { isOverdue: boolean };
@@ -49,3 +50,36 @@ export async function getResidentComplaintDetail(session: Session | null, compla
 }
 
 export type ResidentComplaintDetail = NonNullable<Awaited<ReturnType<typeof getResidentComplaintDetail>>>;
+
+// Single-complaint admin read. Overdue uses the isOverdue() helper here
+// (not raw SQL) — the raw-SQL join is only for the list query. See
+// ARCHITECTURE.md, invariant 3. Also carries the legal next statuses so the
+// UI renders only actions that will succeed; the server still validates
+// independently inside applyTransition().
+export async function getAdminComplaintDetail(session: Session | null, complaintId: string) {
+  const complaint = await prisma.complaint.findFirst({
+    where: adminComplaintScope(session, { id: complaintId }),
+    include: {
+      unit: { select: { label: true } },
+      raisedBy: { select: { name: true, email: true } },
+      events: {
+        orderBy: { seq: "asc" },
+        include: { actor: { select: { name: true } } },
+      },
+      regressedFrom: { select: { id: true, category: true, createdAt: true } },
+    },
+  });
+
+  if (!complaint) {
+    return null;
+  }
+
+  const [withOverdue] = await attachOverdue([complaint]);
+  return {
+    ...complaint,
+    isOverdue: withOverdue.isOverdue,
+    legalNextStatuses: legalTransitions(complaint.status),
+  };
+}
+
+export type AdminComplaintDetail = NonNullable<Awaited<ReturnType<typeof getAdminComplaintDetail>>>;
