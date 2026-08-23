@@ -5,7 +5,7 @@ import { AuthSessionProvider } from "@/components/session-provider";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Society Maintenance Tracker",
+  title: "CommunityDesk",
   description: "Apartment society complaint management",
 };
 
@@ -18,7 +18,7 @@ export default async function RootLayout({
 
   return (
     <html lang="en">
-      <body className="min-h-screen bg-gray-50 text-gray-900 antialiased">
+      <body className="min-h-screen bg-slate-50 font-sans text-slate-900 antialiased">
         <AuthSessionProvider session={session}>{children}</AuthSessionProvider>
       </body>
     </html>

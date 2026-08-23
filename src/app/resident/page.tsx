@@ -3,6 +3,8 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth/options";
 import { listResidentComplaints } from "@/lib/complaints/queries";
 import { CATEGORY_LABELS } from "@/lib/constants/categories";
+import { StatusBadge, PriorityBadge, OverdueBadge, RegressedBadge } from "@/components/ui/badge";
+import { EmptyState } from "@/components/ui/empty-state";
 
 export default async function ResidentComplaintsPage() {
   const session = await getServerSession(authOptions);
@@ -10,41 +12,56 @@ export default async function ResidentComplaintsPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold">Your complaints</h1>
-        <Link href="/resident/new" className="rounded bg-gray-900 px-4 py-2 text-sm text-white">
+      <div className="flex items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Your complaints</h1>
+          <p className="mt-1 text-sm text-slate-500">
+            {complaints.length === 0
+              ? "Nothing raised yet"
+              : `${complaints.length} complaint${complaints.length === 1 ? "" : "s"}`}
+          </p>
+        </div>
+        <Link
+          href="/resident/new"
+          className="shrink-0 rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-indigo-700"
+        >
           Raise a complaint
         </Link>
       </div>
 
       {complaints.length === 0 ? (
-        <p className="text-sm text-gray-600">You haven&apos;t raised any complaints yet.</p>
+        <EmptyState
+          title="No complaints yet"
+          description="If something in your unit or building needs attention, raise a complaint and track it here."
+          action={
+            <Link
+              href="/resident/new"
+              className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-indigo-700"
+            >
+              Raise a complaint
+            </Link>
+          }
+        />
       ) : (
         <ul className="flex flex-col gap-3">
           {complaints.map((complaint) => (
             <li key={complaint.id}>
               <Link
                 href={`/resident/complaints/${complaint.id}`}
-                className="block rounded border border-gray-200 bg-white px-4 py-3 hover:border-gray-400"
+                className="block rounded-lg border border-slate-200 bg-white p-4 shadow-sm transition-colors hover:border-indigo-300 hover:shadow-md"
               >
-                <div className="flex items-center justify-between">
-                  <span className="font-medium">{CATEGORY_LABELS[complaint.category]}</span>
-                  <span className="text-xs text-gray-500">
+                <div className="flex items-start justify-between gap-3">
+                  <span className="font-medium text-slate-900">{CATEGORY_LABELS[complaint.category]}</span>
+                  <span className="shrink-0 text-xs text-slate-400">
                     {new Date(complaint.createdAt).toLocaleDateString()}
                   </span>
                 </div>
-                <p className="mt-1 line-clamp-2 text-sm text-gray-600">{complaint.description}</p>
-                <div className="mt-2 flex items-center gap-2 text-xs">
-                  <span className="rounded-full bg-gray-100 px-2 py-0.5">
-                    {complaint.status.replace("_", " ")}
-                  </span>
-                  <span className="rounded-full bg-gray-100 px-2 py-0.5">{complaint.priority}</span>
-                  {complaint.isOverdue && (
-                    <span className="rounded-full bg-red-100 px-2 py-0.5 text-red-700">Overdue</span>
-                  )}
-                  {complaint.regressedFromId && (
-                    <span className="rounded-full bg-purple-100 px-2 py-0.5 text-purple-700">Regressed</span>
-                  )}
+                <p className="mt-1 line-clamp-2 text-sm text-slate-600">{complaint.description}</p>
+                <div className="mt-3 flex flex-wrap items-center gap-1.5">
+                  <StatusBadge status={complaint.status} />
+                  <PriorityBadge priority={complaint.priority} />
+                  {complaint.isOverdue && <OverdueBadge />}
+                  {complaint.regressedFromId && <RegressedBadge />}
                 </div>
               </Link>
             </li>

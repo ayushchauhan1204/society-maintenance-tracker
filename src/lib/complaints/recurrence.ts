@@ -2,35 +2,13 @@ import { Prisma, type Category } from "@prisma/client";
 import type { Session } from "next-auth";
 import { prisma } from "@/lib/db/client";
 import { requireAdmin } from "@/lib/db/scopes";
-
-const DEFAULT_WINDOW_DAYS = 60;
-const DEFAULT_THRESHOLD_COUNT = 3;
+import { getRecurrenceSettings } from "@/lib/settings/queries";
 
 export interface RecurrenceGroup {
   unitLabel: string;
   category: Category;
   count: number;
   spanDays: number;
-}
-
-interface RecurrenceSettings {
-  windowDays: number;
-  thresholdCount: number;
-}
-
-async function getRecurrenceSettings(): Promise<RecurrenceSettings> {
-  const settings = await prisma.setting.findMany({
-    where: { key: { in: ["recurrence_window_days", "recurrence_threshold_count"] } },
-  });
-  const byKey = new Map(settings.map((setting) => [setting.key, setting.value]));
-
-  const windowDays = Number.parseInt(byKey.get("recurrence_window_days") ?? "", 10);
-  const thresholdCount = Number.parseInt(byKey.get("recurrence_threshold_count") ?? "", 10);
-
-  return {
-    windowDays: Number.isFinite(windowDays) && windowDays > 0 ? windowDays : DEFAULT_WINDOW_DAYS,
-    thresholdCount: Number.isFinite(thresholdCount) && thresholdCount > 0 ? thresholdCount : DEFAULT_THRESHOLD_COUNT,
-  };
 }
 
 interface RecurrenceRow {

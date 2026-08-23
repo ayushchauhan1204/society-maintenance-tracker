@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Category } from "@prisma/client";
 import { CATEGORIES, CATEGORY_LABELS } from "@/lib/constants/categories";
 import { ALLOWED_PHOTO_MIME_TYPES, MAX_PHOTO_BYTES } from "@/lib/constants/uploads";
+import { Spinner } from "@/components/ui/spinner";
 
 interface SignedUpload {
   cloudName: string;
@@ -121,14 +122,23 @@ export default function NewComplaintPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-xl font-semibold">Raise a complaint</h1>
-      <form onSubmit={handleSubmit} className="flex max-w-lg flex-col gap-4">
-        <label className="flex flex-col gap-1 text-sm">
-          Category
+      <div>
+        <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Raise a complaint</h1>
+        <p className="mt-1 text-sm text-slate-500">
+          Give as much detail as you can — the admin team triages by category and priority.
+        </p>
+      </div>
+
+      <form
+        onSubmit={handleSubmit}
+        className="flex max-w-lg flex-col gap-5 rounded-lg border border-slate-200 bg-white p-5 shadow-sm"
+      >
+        <label className="flex flex-col gap-1.5 text-sm">
+          <span className="font-medium text-slate-700">Category</span>
           <select
             value={category}
             onChange={(e) => setCategory(e.target.value as Category)}
-            className="rounded border border-gray-300 px-3 py-2"
+            className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
           >
             {CATEGORIES.map((c) => (
               <option key={c} value={c}>
@@ -137,8 +147,9 @@ export default function NewComplaintPage() {
             ))}
           </select>
         </label>
-        <label className="flex flex-col gap-1 text-sm">
-          Description
+
+        <label className="flex flex-col gap-1.5 text-sm">
+          <span className="font-medium text-slate-700">Description</span>
           <textarea
             required
             minLength={10}
@@ -146,29 +157,49 @@ export default function NewComplaintPage() {
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder="Describe the issue in detail..."
-            className="rounded border border-gray-300 px-3 py-2"
+            className="rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
           />
+          <span className="text-xs text-slate-400">At least 10 characters.</span>
         </label>
-        <label className="flex flex-col gap-1 text-sm">
-          Photo (optional)
+
+        <label className="flex flex-col gap-1.5 text-sm">
+          <span className="font-medium text-slate-700">Photo (optional)</span>
           <input
             type="file"
             accept={ALLOWED_PHOTO_MIME_TYPES.join(",")}
             onChange={handlePhotoChange}
-            className="rounded border border-gray-300 px-3 py-2 text-sm"
+            className="rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-700 file:mr-3 file:rounded file:border-0 file:bg-slate-100 file:px-3 file:py-1 file:text-sm file:font-medium file:text-slate-700 hover:file:bg-slate-200"
           />
+          <span className="text-xs text-slate-400">
+            JPEG, PNG, WEBP, or GIF, up to {MAX_PHOTO_BYTES / (1024 * 1024)}MB.
+          </span>
         </label>
+
         {photoPreviewUrl && (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={photoPreviewUrl} alt="Selected photo preview" className="max-h-48 rounded border border-gray-200 object-cover" />
+          <img
+            src={photoPreviewUrl}
+            alt="Selected photo preview"
+            className="max-h-48 rounded-lg border border-slate-200 object-cover"
+          />
         )}
-        {uploadStatus && <p className="text-sm text-gray-600">{uploadStatus}</p>}
-        {error && <p className="text-sm text-red-600">{error}</p>}
+
+        {uploadStatus && (
+          <p className="flex items-center gap-2 text-sm text-slate-600">
+            <Spinner className="h-4 w-4" />
+            {uploadStatus}
+          </p>
+        )}
+        {error && (
+          <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>
+        )}
+
         <button
           type="submit"
           disabled={isSubmitting}
-          className="self-start rounded bg-gray-900 px-4 py-2 text-white disabled:opacity-50"
+          className="inline-flex items-center justify-center gap-2 self-start rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
         >
+          {isSubmitting && <Spinner className="h-4 w-4" />}
           {isSubmitting ? "Submitting..." : "Submit complaint"}
         </button>
       </form>

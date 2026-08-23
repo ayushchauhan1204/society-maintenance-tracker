@@ -1,8 +1,7 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth/options";
-import { SignOutButton } from "@/components/sign-out-button";
+import { AppHeader } from "@/components/app-header";
 
 export default async function ResidentLayout({ children }: { children: React.ReactNode }) {
   const session = await getServerSession(authOptions);
@@ -14,29 +13,9 @@ export default async function ResidentLayout({ children }: { children: React.Rea
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="border-b border-gray-200 bg-white">
-        <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-3">
-          <div className="flex items-center gap-6">
-            <Link href="/resident" className="font-semibold">
-              Society Tracker
-            </Link>
-            <nav className="flex gap-4 text-sm text-gray-600">
-              <Link href="/resident" className="hover:text-gray-900">
-                Complaints
-              </Link>
-              <Link href="/resident/notices" className="hover:text-gray-900">
-                Notices
-              </Link>
-            </nav>
-          </div>
-          <div className="flex items-center gap-4 text-sm text-gray-600">
-            <span>{session.user.name}</span>
-            <SignOutButton />
-          </div>
-        </div>
-      </header>
-      <main className="mx-auto max-w-3xl px-4 py-6">{children}</main>
+    <div className="min-h-screen bg-slate-50">
+      <AppHeader role="RESIDENT" userName={session.user.name ?? ""} />
+      <main className="mx-auto max-w-4xl px-4 py-8 sm:px-6">{children}</main>
     </div>
   );
 }

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Spinner } from "@/components/ui/spinner";
 
 export function DrainOutboxButton() {
   const router = useRouter();
@@ -33,16 +34,21 @@ export function DrainOutboxButton() {
         type="button"
         onClick={handleClick}
         disabled={isSending}
-        className="self-start rounded bg-gray-900 px-4 py-2 text-sm text-white disabled:opacity-50"
+        className="inline-flex items-center gap-2 self-start rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
       >
+        {isSending && <Spinner className="h-4 w-4" />}
         {isSending ? "Sending..." : "Send pending emails"}
       </button>
       {result && (
-        <p className="text-sm text-gray-600">
-          Sent {result.sent}, retried {result.retried}, failed {result.failed}.
+        <p className="text-sm text-slate-500">
+          Sent <span className="font-medium text-slate-700">{result.sent}</span>, retried{" "}
+          <span className="font-medium text-slate-700">{result.retried}</span>, failed{" "}
+          <span className="font-medium text-slate-700">{result.failed}</span>.
         </p>
       )}
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && (
+        <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>
+      )}
     </div>
   );
 }

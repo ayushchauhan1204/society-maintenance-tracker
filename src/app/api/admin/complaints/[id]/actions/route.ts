@@ -9,6 +9,7 @@ import {
   IllegalTransitionError,
   ConcurrencyError,
 } from "@/lib/complaints/transition";
+import { nudgeOutboxDrain } from "@/lib/outbox/nudge";
 
 // Every admin action goes through applyTransition() with the client's last
 // known version. A version mismatch is a 409, not a silent overwrite. See
@@ -31,6 +32,14 @@ export async function POST(req: Request, { params }: { params: { id: string } })
       actorId: admin.user.id,
       expectedVersion,
     });
+
+    // Only STATUS_CHANGE enqueues an outbox row (see transition.ts) — nudge
+    // the drain worker so the resident's email arrives without anyone
+    // clicking the manual trigger. Fire-and-forget: this never blocks or
+    // fails the response above.
+    if (action.kind === "STATUS_CHANGE") {
+      nudgeOutboxDrain(admin);
+    }
 
     return NextResponse.json(updated);
   } catch (err) {
