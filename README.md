@@ -5,6 +5,11 @@ complaints — with an optional photo — against their unit; admins triage them
 status/priority lifecycle, watch SLA compliance, spot recurring problems, and keep residents
 informed via a notice board and email.
 
+Overdue is detected automatically, evaluated against the SLA matrix (category × priority,
+admin-editable at `/admin/settings`) — no one has to notice or mark anything. Escalation is a
+separate, manual flag an admin sets by hand. Both are distinct signals and both surface at the
+top of the admin queue, with their own badges.
+
 It's a single Next.js application: no separate backend, no microservices, no real-time layer.
 The full set of behavioral guarantees (why status can only change one way, why "overdue" is
 never stored, why authorization lives in the data layer) is documented in
@@ -197,9 +202,16 @@ transaction as the notice itself.
 Claims up to 25 `PENDING` messages whose `nextAttemptAt` has passed and sends each one over SMTP,
 committing that message's own outcome (`SENT`, rescheduled with backoff, or `FAILED` after 5
 attempts) independently of the others — one bad send never rolls back a good one. No route ever
-sends mail inline from a state-changing request; this is the only route that sends anything, and
-it's meant to be triggered manually (there's a "Send pending emails" button on `/admin/system`)
-since there's no cron/queue infrastructure in this project.
+sends mail inline from a state-changing request; this is the only route that sends anything.
+Status changes and important notices already nudge it to run in the background on their own (see
+`lib/outbox/nudge.ts`); the "Send pending emails" button on `/admin/system` is the same route
+triggered by hand, for a manual catch-up without a cron job.
+
+**A note on email in this deployment**: both the live demo and local dev use Mailtrap's free
+sandbox tier — it captures every message in a private testing inbox rather than delivering to
+real addresses, and caps at 50 messages/month. `/admin/system` shows the real outbox state
+regardless — sent, pending, and failed, with the literal provider error text — so you can see
+what actually happened even without Mailtrap access.
 
 ---
 
