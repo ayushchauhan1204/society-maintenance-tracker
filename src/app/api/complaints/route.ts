@@ -32,6 +32,8 @@ export async function POST(req: Request) {
       raisedById: scope.raisedById,
       category: parsed.data.category,
       description: parsed.data.description,
+      photoPublicId: parsed.data.photoPublicId,
+      photoUrl: parsed.data.photoUrl,
     });
     return NextResponse.json(complaint, { status: 201 });
   } catch (err) {

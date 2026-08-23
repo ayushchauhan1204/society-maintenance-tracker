@@ -28,6 +28,23 @@ function requireSession(session: Session | null): Session {
   return session;
 }
 
+// Gates access to resources that don't narrow by row at all — every
+// authenticated user (either role) sees the same data. Used for the notice
+// board, which has no per-user ownership to scope against.
+export function requireAuthenticated(session: Session | null): Session {
+  return requireSession(session);
+}
+
+// Gates resident-only actions that don't touch Complaint rows directly (e.g.
+// signing a photo upload) — the authorization decision still lives here.
+export function requireResident(session: Session | null): Session {
+  const activeSession = requireSession(session);
+  if (activeSession.user.role !== Role.RESIDENT) {
+    throw new UnauthorizedError("This action requires a RESIDENT session");
+  }
+  return activeSession;
+}
+
 // Scopes a complaint read (list or single) to complaints raised by this
 // resident. `extra` narrows further (e.g. by id) without ever widening past
 // the resident's own rows.

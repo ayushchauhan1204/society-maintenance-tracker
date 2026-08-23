@@ -1,10 +1,20 @@
 import { z } from "zod";
 import { Category, Priority, Status } from "@prisma/client";
 
-export const createComplaintSchema = z.object({
-  category: z.nativeEnum(Category),
-  description: z.string().trim().min(10).max(2000),
-});
+// photoPublicId/photoUrl come from a completed Cloudinary upload (see
+// /api/uploads/sign) — both present or both absent, and the URL must
+// actually be a Cloudinary asset, not an arbitrary client-supplied link.
+export const createComplaintSchema = z
+  .object({
+    category: z.nativeEnum(Category),
+    description: z.string().trim().min(10).max(2000),
+    photoPublicId: z.string().trim().min(1).max(300).optional(),
+    photoUrl: z.string().url().max(2000).startsWith("https://res.cloudinary.com/").optional(),
+  })
+  .refine((data) => Boolean(data.photoPublicId) === Boolean(data.photoUrl), {
+    message: "photoPublicId and photoUrl must be provided together",
+    path: ["photoUrl"],
+  });
 
 export type CreateComplaintInput = z.infer<typeof createComplaintSchema>;
 

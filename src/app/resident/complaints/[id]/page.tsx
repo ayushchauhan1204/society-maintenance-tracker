@@ -50,6 +50,14 @@ export default async function ComplaintDetailPage({ params }: { params: { id: st
           )}
         </div>
         <p className="mt-2 whitespace-pre-wrap text-sm text-gray-700">{complaint.description}</p>
+        {complaint.photoUrl && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={complaint.photoUrl}
+            alt="Complaint photo"
+            className="mt-3 max-h-80 rounded border border-gray-200 object-cover"
+          />
+        )}
         <div className="mt-3 flex gap-2 text-xs">
           <span className="rounded-full bg-gray-100 px-2 py-0.5">{complaint.status.replace("_", " ")}</span>
           <span className="rounded-full bg-gray-100 px-2 py-0.5">{complaint.priority}</span>

@@ -45,6 +45,9 @@ type BaseInput = {
   complaintId: string;
   actorId: string;
   expectedVersion: number;
+  // Overridable for seeding historical event timestamps; defaults to the
+  // real clock. Production callers never pass this.
+  now?: Date;
 };
 
 export type ApplyTransitionInput =
@@ -86,7 +89,7 @@ export async function applyTransition(input: ApplyTransitionInput): Promise<Comp
       );
     }
 
-    const now = new Date();
+    const now = input.now ?? new Date();
 
     let eventType: EventType;
     let fromStatus: Status | null = null;
@@ -149,6 +152,7 @@ export async function applyTransition(input: ApplyTransitionInput): Promise<Comp
         fromPriority,
         toPriority,
         note: input.note ?? null,
+        createdAt: now,
       },
     });
 
