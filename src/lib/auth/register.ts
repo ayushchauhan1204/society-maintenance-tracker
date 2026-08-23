@@ -1,5 +1,5 @@
 import { Prisma, Role, type User } from "@prisma/client";
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/db/client";
 import type { RegisterInput } from "@/lib/schemas/auth";
 
